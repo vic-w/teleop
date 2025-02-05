@@ -3,46 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebXR Stereo Images</title>
+    <title>WebXR Fixed Stereo Images</title>
     <style>
         body { margin: 0; }
         canvas { display: block; }
     </style>
 </head>
 <body>
-    <!-- 使用 type="module" 加载脚本 -->
     <script type="module">
-        // 使用 ES Modules 引入 Three.js 和 VRButton
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
         import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/VRButton.js';
 
-        // 初始化场景、相机和渲染器
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 检测 WebXR 支持
+        // 启用 WebXR
         if ('xr' in navigator) {
-            console.log("WebXR is supported!");
-
-            // 启用 WebXR
             renderer.xr.enabled = true;
-
-            // 添加 VR 按钮
-            const vrButton = VRButton.createButton(renderer);
-            document.body.appendChild(vrButton);
-        } else {
-            console.log("WebXR is NOT supported.");
+            document.body.appendChild(VRButton.createButton(renderer));
         }
 
-        // 加载 left.png 和 right.png
+        // 加载纹理
         const textureLoader = new THREE.TextureLoader();
-        const textureLeft = textureLoader.load('left.png'); // 左眼图片
-        const textureRight = textureLoader.load('right.png'); // 右眼图片
+        const textureLeft = textureLoader.load('left.png');
+        const textureRight = textureLoader.load('right.png');
 
-        // 创建左右眼的平面几何体
+        // 创建左右眼平面
         const geometry = new THREE.PlaneGeometry(5, 5); // 平面大小
         const materialLeft = new THREE.MeshBasicMaterial({ map: textureLeft });
         const materialRight = new THREE.MeshBasicMaterial({ map: textureRight });
@@ -54,22 +43,35 @@
         scene.add(meshLeft);
         scene.add(meshRight);
 
-        // 设置左右眼平面的位置
-        meshLeft.position.set(-2.5, 0, -5); // 左眼图片位置
-        meshRight.position.set(2.5, 0, -5); // 右眼图片位置
-
-        // 设置相机初始位置
-        camera.position.set(0, 0, 0);
+        // 设置初始位置（距离相机一定距离）
+        const distance = 5; // 图片距离相机的距离
+        meshLeft.position.set(-0.5, 0, -distance); // 左眼图片位置
+        meshRight.position.set(0.5, 0, -distance); // 右眼图片位置
 
         // 渲染循环
         renderer.setAnimationLoop(() => {
             if (renderer.xr.isPresenting) {
                 const xrCamera = renderer.xr.getCamera(camera);
-                // 保持平面始终朝向用户眼睛
-                meshLeft.quaternion.copy(xrCamera.quaternion);
-                meshRight.quaternion.copy(xrCamera.quaternion);
+
+                // 获取相机的世界位置和方向
+                const cameraWorldPosition = new THREE.Vector3();
+                const cameraWorldQuaternion = new THREE.Quaternion();
+                xrCamera.getWorldPosition(cameraWorldPosition);
+                xrCamera.getWorldQuaternion(cameraWorldQuaternion);
+
+                // 计算图片的目标位置（相机前方固定距离）
+                const offset = new THREE.Vector3(0, 0, -distance);
+                offset.applyQuaternion(cameraWorldQuaternion);
+
+                // 更新左右眼图片的位置和方向
+                meshLeft.position.copy(cameraWorldPosition).add(offset);
+                meshLeft.quaternion.copy(cameraWorldQuaternion);
+
+                meshRight.position.copy(cameraWorldPosition).add(offset);
+                meshRight.quaternion.copy(cameraWorldQuaternion);
             }
-            // 在 WebXR 中，Three.js 会自动处理左右眼的渲染
+
+            // 渲染场景
             renderer.render(scene, camera);
         });
 
