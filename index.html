@@ -63,6 +63,12 @@
 
         // 渲染循环
         renderer.setAnimationLoop(() => {
+            if (renderer.xr.isPresenting) {
+                const xrCamera = renderer.xr.getCamera(camera);
+                // 保持平面始终朝向用户眼睛
+                meshLeft.quaternion.copy(xrCamera.quaternion);
+                meshRight.quaternion.copy(xrCamera.quaternion);
+            }
             // 在 WebXR 中，Three.js 会自动处理左右眼的渲染
             renderer.render(scene, camera);
         });
