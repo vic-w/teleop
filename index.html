@@ -43,6 +43,10 @@
         scene.add(meshLeft);
         scene.add(meshRight);
 
+        // 设置渲染层级
+        meshLeft.layers.set(1);  // 左眼层级
+        meshRight.layers.set(2); // 右眼层级
+
         // 设置初始位置（距离相机一定距离）
         const distance = 5; // 图片距离相机的距离
         meshLeft.position.set(-0.5, 0, -distance); // 左眼图片位置
