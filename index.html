@@ -129,35 +129,42 @@
                             const hand = inputSource.hand;
                             const joints = inputSource.handedness === 'left' ? leftHandJoints : rightHandJoints;
 
-                            if(inputSource.handedness === 'left'){
+                            logToScreen(String(inputSource.hand.values()));
+                            if(inputSource.hand){
                                 okMesh.position.set(1, 0, -4);
                             }else{
                                 okMesh.position.set(-1, 0, -4);
                             }
 
-                            logToScreen(String(hand.length));
+  
+                            if (inputSource.hand) {
+                                let handData = "Hand data is available:\n";
 
-                            // 遍历手部关节并更新位置
-                            for (let i = 0; i < hand.length; i++) {
-                                const joint = hand[i];
-                                const jointMesh = joints[i];
+                                // 获取手部数据的迭代器
+                                let hand = inputSource.hand;
 
-                                if (joint && jointMesh) {
-                                    const jointPose = frame.getJointPose(joint, xrCamera);
-                                    if (jointPose) {
-                                        jointMesh.position.set(
-                                            jointPose.transform.position.x,
-                                            jointPose.transform.position.y,
-                                            jointPose.transform.position.z
-                                        );
-                                        jointMesh.quaternion.set(
-                                            jointPose.transform.orientation.x,
-                                            jointPose.transform.orientation.y,
-                                            jointPose.transform.orientation.z,
-                                            jointPose.transform.orientation.w
-                                        );
-                                    }
+                                handData += String(hand.size)
+
+                                // 遍历 hand.values() 返回的迭代器并拼接信息
+//                                 let i = 0;
+//                                 for (let joint of hand.values()) {
+
+//                                     //joint 是一个XRJointSpace， 继承自XRSpace
+//                                     handData += String(joint.jointName);
+//                                     handData += String(joint.transform);
+// ''
+//                                     i++;
+//                                 }
+
+                                for (const [joint, jointSpace] of inputSource.hand) {
+                                    handData += String(joint);
+                                    handData += String(jointSpace);
                                 }
+
+                                // 最后一次性打印所有手部数据
+                                logToScreen(handData);
+                            } else {
+                                logToScreen("No hand data available.");
                             }
                         }
                     }
