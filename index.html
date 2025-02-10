@@ -10,6 +10,7 @@
     </style>
 </head>
 <body>
+    <div id="debug-info" style="position: fixed; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 10px; z-index: 1000;"></div>
     <script type="module">
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
         import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/VRButton.js';
@@ -24,6 +25,16 @@
         if ('xr' in navigator) {
             renderer.xr.enabled = true;
             document.body.appendChild(VRButton.createButton(renderer));
+
+            // 启用手部追踪
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                if (supported) {
+                    const sessionInit = { optionalFeatures: ['hand-tracking'] };
+                    renderer.xr.setSession(sessionInit);
+                } else {
+                    console.warn('WebXR hand tracking is not supported on this device.');
+                }
+            });
         }
 
         // 加载纹理
@@ -52,6 +63,42 @@
         meshLeft.position.set(-0.5, 0, -distance); // 左眼图片位置
         meshRight.position.set(0.5, 0, -distance); // 右眼图片位置
 
+        // // 创建手部关节的几何体和材质
+        const okGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.02); // 小立方体表示关节
+        const okMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+         const okMesh = new THREE.Mesh(okGeometry, okMaterial);
+         scene.add(okMesh);
+         okMesh.position.set(0, 0, -4);
+
+        // // 存储手部关节的网格
+        const leftHandJoints = {};
+        const rightHandJoints = {};
+        const jointGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.02); // 小立方体表示关节
+        const jointMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        // 初始化手部关节
+        for (let i = 0; i < 25; i++) { // 每只手有25个关节
+            const jointMesh = new THREE.Mesh(jointGeometry, jointMaterial);
+            leftHandJoints[i] = jointMesh;
+            scene.add(jointMesh);
+            jointMesh.position.set(0, 0, -3);
+        }
+
+        for (let i = 0; i < 25; i++) { // 每只手有25个关节
+            const jointMesh = new THREE.Mesh(jointGeometry, jointMaterial);
+            rightHandJoints[i] = jointMesh;
+            scene.add(jointMesh);
+            jointMesh.position.set(0, 0, -3);
+        }
+
+        function logToScreen(message) {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.innerText = message;
+        }
+
+        // 示例：打印调试信息
+        logToScreen('WebXR session started');
+
+
         // 渲染循环
         renderer.setAnimationLoop(() => {
             if (renderer.xr.isPresenting) {
@@ -73,6 +120,49 @@
 
                 meshRight.position.copy(cameraWorldPosition).add(offset);
                 meshRight.quaternion.copy(cameraWorldQuaternion);
+
+
+                const session = renderer.xr.getSession();
+                if (session.inputSources) {
+                    for (const inputSource of session.inputSources) {
+                        if (inputSource.hand) {
+                            const hand = inputSource.hand;
+                            const joints = inputSource.handedness === 'left' ? leftHandJoints : rightHandJoints;
+
+                            if(inputSource.handedness === 'left'){
+                                okMesh.position.set(1, 0, -4);
+                            }else{
+                                okMesh.position.set(-1, 0, -4);
+                            }
+
+                            logToScreen(String(hand.length));
+
+                            // 遍历手部关节并更新位置
+                            for (let i = 0; i < hand.length; i++) {
+                                const joint = hand[i];
+                                const jointMesh = joints[i];
+
+                                if (joint && jointMesh) {
+                                    const jointPose = frame.getJointPose(joint, xrCamera);
+                                    if (jointPose) {
+                                        jointMesh.position.set(
+                                            jointPose.transform.position.x,
+                                            jointPose.transform.position.y,
+                                            jointPose.transform.position.z
+                                        );
+                                        jointMesh.quaternion.set(
+                                            jointPose.transform.orientation.x,
+                                            jointPose.transform.orientation.y,
+                                            jointPose.transform.orientation.z,
+                                            jointPose.transform.orientation.w
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
             }
 
             // 渲染场景

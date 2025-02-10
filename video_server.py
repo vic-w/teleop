@@ -37,8 +37,8 @@ async def main():
     ssl_context.load_cert_chain(certfile='cert.pem', keyfile='key.pem')
     
     # 启动服务器并通过 wss 协议提供视频流
-    server = await websockets.serve(video_stream, '192.168.5.66', 8765, ssl=ssl_context)
-    print("WebSocket 服务器已启动，监听 wss://192.168.5.66:8765")
+    server = await websockets.serve(video_stream, '0.0.0.0', 8765, ssl=ssl_context)
+    print("WebSocket 服务器已启动，监听 wss://0.0.0.0:8765")
     await server.wait_closed()
 
 if __name__ == "__main__":
