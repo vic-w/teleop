@@ -19,6 +19,8 @@
         let xrRefSpace_local = null;
         let xrRefSpace_viewer = null;
 
+        let frameNumber = 0;
+
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -35,6 +37,7 @@
         // WebSocket 连接部分
         const serverAddress = window.location.hostname;
         const socket = new WebSocket(`wss://${serverAddress}:8765`); // 使用动态获取的主机名作为 WebSocket 地址
+        const socketPoseServer = new WebSocket(`wss://${serverAddress}:8764`); 
 
         // 创建一个空的纹理，这里会动态更新
         let textureLeft = new THREE.Texture();
@@ -91,6 +94,12 @@
 
         logToScreen('WebXR session started');
 
+        function sendFrameNumber() {
+            const jsonData = JSON.stringify({ frame: frameNumber });
+            socketPoseServer.send(jsonData);
+            frameNumber++;
+        }
+
         // 渲染帧回调函数
         const onXRFrame = (timestamp, frame) => {
             // 获取XR会话的相机视图
@@ -123,6 +132,7 @@
 
                             // 更新手部关节位置
                             let i = 0;
+                            sendFrameNumber()
                             for (const joint of hand.values()) {
                                  const jointMesh = joints[i];
 
