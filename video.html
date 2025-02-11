@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Video Stream</title>
+    <title>WebSocket Image Stream</title>
     <style>
-        body { margin: 0; }
-        img { display: block; width: 100%; height: auto; }
+        body { margin: 0; display: flex; justify-content: space-between; }
+        img { width: 48%; height: auto; }
     </style>
 </head>
 <body>
-    <img id="video" alt="Video Stream" />
+    <!-- 显示左图和右图 -->
+    <img id="left" alt="Left Image Stream" />
+    <img id="right" alt="Right Image Stream" />
+
     <script>
         // 获取当前网页的主机名（即 IP 地址或域名）
         const serverAddress = window.location.hostname;
@@ -18,7 +21,8 @@
         const socket = new WebSocket(`wss://${serverAddress}:8765`); // 使用动态获取的主机名作为 WebSocket 地址
 
         // 获取 <img> 元素
-        const videoElement = document.getElementById('video');
+        const leftVideoElement = document.getElementById('left');
+        const rightVideoElement = document.getElementById('right');
 
         // 连接打开时的处理
         socket.addEventListener('open', () => {
@@ -26,13 +30,31 @@
         });
 
         // 接收到消息时的处理
-        socket.addEventListener('message', (event) => {
-            // 创建一个 Blob 对象
-            const blob = new Blob([event.data], { type: 'image/jpeg' });
-            // 创建一个 URL 对象
-            const url = URL.createObjectURL(blob);
-            // 设置 <img> 元素的 src 属性
-            videoElement.src = url;
+        socket.addEventListener('message', async (event) => {
+            // 获取收到的二进制数据，并确保它是 ArrayBuffer
+            const data = await event.data.arrayBuffer(); // 将 Blob 转换为 ArrayBuffer
+
+            // 获取包头的长度信息（前 8 个字节）
+            const header = new DataView(data, 0, 8);
+            const leftLength = header.getUint32(0, false);  // 读取左图长度（大端字节序）
+            const rightLength = header.getUint32(4, false);  // 读取右图长度（大端字节序）
+
+            // 打印图片的长度
+            console.log(`Left Image Length: ${leftLength}`);
+            console.log(`Right Image Length: ${rightLength}`);
+
+            // 提取左图和右图的数据
+            const leftData = data.slice(8, 8 + leftLength);
+            const rightData = data.slice(8 + leftLength, 8 + leftLength + rightLength);
+
+            // 创建 Blob 对象并设置图像为 PNG 格式
+            const leftBlob = new Blob([leftData], { type: 'image/png' });
+            const leftUrl = URL.createObjectURL(leftBlob);
+            leftVideoElement.src = leftUrl;
+
+            const rightBlob = new Blob([rightData], { type: 'image/png' });
+            const rightUrl = URL.createObjectURL(rightBlob);
+            rightVideoElement.src = rightUrl;
         });
 
         // 连接关闭时的处理
