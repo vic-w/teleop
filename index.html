@@ -32,9 +32,13 @@
         }
 
         // 加载纹理
-        const textureLoader = new THREE.TextureLoader();
-        const textureLeft = textureLoader.load('left.png');
-        const textureRight = textureLoader.load('right.png');
+        // WebSocket 连接部分
+        const serverAddress = window.location.hostname;
+        const socket = new WebSocket(`wss://${serverAddress}:8765`); // 使用动态获取的主机名作为 WebSocket 地址
+
+        // 创建一个空的纹理，这里会动态更新
+        let textureLeft = new THREE.Texture();
+        let textureRight = new THREE.Texture();
 
         // 创建左右眼平面
         const geometry = new THREE.PlaneGeometry(5, 5); // 平面大小
@@ -174,6 +178,62 @@
             // 渲染场景
             renderer.render(scene, camera);
         };
+
+                // 监听 WebSocket 连接
+                socket.addEventListener('open', () => {
+            console.log('WebSocket 连接已打开');
+        });
+
+        socket.addEventListener('message', async (event) => {
+            // 获取收到的二进制数据，并确保它是 ArrayBuffer
+            const data = await event.data.arrayBuffer();
+
+            // 获取包头的长度信息（前 8 个字节）
+            const header = new DataView(data, 0, 8);
+            const leftLength = header.getUint32(0, false);  // 读取左图长度（大端字节序）
+            const rightLength = header.getUint32(4, false);  // 读取右图长度（大端字节序）
+
+            console.log(`Left Image Length: ${leftLength}`);
+            console.log(`Right Image Length: ${rightLength}`);
+
+            // 提取左图和右图的数据
+            const leftData = data.slice(8, 8 + leftLength);
+            const rightData = data.slice(8 + leftLength, 8 + leftLength + rightLength);
+
+            // 创建 Blob 对象并设置图像为 PNG 格式
+            const leftBlob = new Blob([leftData], { type: 'image/png' });
+            const rightBlob = new Blob([rightData], { type: 'image/png' });
+
+            // 使用 FileReader 加载图片并更新纹理
+            const readerLeft = new FileReader();
+            readerLeft.onloadend = () => {
+                textureLeft.image = new Image();
+                textureLeft.image.onload = () => {
+                    textureLeft.needsUpdate = true;
+                };
+                textureLeft.image.src = readerLeft.result;
+            };
+            readerLeft.readAsDataURL(leftBlob);
+
+            const readerRight = new FileReader();
+            readerRight.onloadend = () => {
+                textureRight.image = new Image();
+                textureRight.image.onload = () => {
+                    textureRight.needsUpdate = true;
+                };
+                textureRight.image.src = readerRight.result;
+            };
+            readerRight.readAsDataURL(rightBlob);
+        });
+
+        socket.addEventListener('close', () => {
+            console.log('WebSocket 连接已关闭');
+        });
+
+        socket.addEventListener('error', (error) => {
+            console.error('WebSocket 发生错误:', error);
+        });
+
 
         // 设置渲染循环
         renderer.setAnimationLoop(onXRFrame);
