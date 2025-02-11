@@ -57,7 +57,7 @@
         meshRight.position.set(0.5, 0, -distance); // 右眼图片位置
 
         // 创建手部关节的几何体和材质
-        const jointGeometry = new THREE.SphereGeometry(0.02, 16, 16); // 小球表示关节
+        const jointGeometry = new THREE.SphereGeometry(0.005, 16, 16); // 小球表示关节
         const jointMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
         // 存储手部关节的网格
@@ -138,7 +138,7 @@
                                     // 将手部关节的位置从头盔坐标系转换为世界坐标系
                                     const jointLocalPosition = new THREE.Vector3(
                                         jointPose.transform.position.x,
-                                        jointPose.transform.position.y,
+                                        jointPose.transform.position.y + cameraWorldPosition.y,
                                         jointPose.transform.position.z
                                     );
 
@@ -149,13 +149,6 @@
                                         jointPose.transform.orientation.z,
                                         jointPose.transform.orientation.w
                                     );
-
-                                    // 先应用旋转，再应用平移
-                                    jointLocalPosition.applyQuaternion(cameraWorldQuaternion); // 将关节的局部位置旋转到世界坐标系
-                                    jointLocalPosition.add(cameraWorldPosition); // 应用相机的世界位置（平移）
-
-                                    // 最后更新关节的旋转：先应用相机的旋转，再应用关节的旋转
-                                    jointLocalRotation.multiply(cameraWorldQuaternion);
 
                                     // 更新手部关节的位置和旋转
                                     jointMesh.position.set(jointLocalPosition.x, jointLocalPosition.y, jointLocalPosition.z);
