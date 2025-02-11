@@ -12,8 +12,10 @@
 <body>
     <img id="video" alt="Video Stream" />
     <script>
-        // 创建 WebSocket 连接
-        const socket = new WebSocket('wss://192.168.9.110:8765'); // 替换为您的 WebSocket 服务器地址
+        // 获取当前网页的主机名（即 IP 地址或域名）
+        const serverAddress = window.location.hostname;
+        // 构建 WebSocket 连接地址
+        const socket = new WebSocket(`wss://${serverAddress}:8765`); // 使用动态获取的主机名作为 WebSocket 地址
 
         // 获取 <img> 元素
         const videoElement = document.getElementById('video');
