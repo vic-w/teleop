@@ -17,5 +17,5 @@ httpd.socket = ssl.wrap_socket(
     ssl_version=ssl.PROTOCOL_TLS
 )
 
-print(f"HTTPS 服务器已启动，访问 https://localhost:{server_address[1]}")
+print(f"HTTPS 服务器已启动，访问 https://0.0.0.0:{server_address[1]}")
 httpd.serve_forever()

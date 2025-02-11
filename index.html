@@ -11,9 +11,12 @@
 </head>
 <body>
     <div id="debug-info" style="position: fixed; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 10px; z-index: 1000;"></div>
+
     <script type="module">
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
         import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/VRButton.js';
+
+        let xrRefSpace = null;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -25,16 +28,6 @@
         if ('xr' in navigator) {
             renderer.xr.enabled = true;
             document.body.appendChild(VRButton.createButton(renderer));
-
-            // 启用手部追踪
-            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-                if (supported) {
-                    const sessionInit = { optionalFeatures: ['hand-tracking'] };
-                    renderer.xr.setSession(sessionInit);
-                } else {
-                    console.warn('WebXR hand tracking is not supported on this device.');
-                }
-            });
         }
 
         // 加载纹理
@@ -63,18 +56,14 @@
         meshLeft.position.set(-0.5, 0, -distance); // 左眼图片位置
         meshRight.position.set(0.5, 0, -distance); // 右眼图片位置
 
-        // // 创建手部关节的几何体和材质
-        const okGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.02); // 小立方体表示关节
-        const okMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-         const okMesh = new THREE.Mesh(okGeometry, okMaterial);
-         scene.add(okMesh);
-         okMesh.position.set(0, 0, -4);
+        // 创建手部关节的几何体和材质
+        const jointGeometry = new THREE.SphereGeometry(0.02, 16, 16); // 小球表示关节
+        const jointMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-        // // 存储手部关节的网格
+        // 存储手部关节的网格
         const leftHandJoints = {};
         const rightHandJoints = {};
-        const jointGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.02); // 小立方体表示关节
-        const jointMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
         // 初始化手部关节
         for (let i = 0; i < 25; i++) { // 每只手有25个关节
             const jointMesh = new THREE.Mesh(jointGeometry, jointMaterial);
@@ -92,89 +81,85 @@
 
         function logToScreen(message) {
             const debugInfo = document.getElementById('debug-info');
-            debugInfo.innerText = message;
+            debugInfo.innerText += (message + '\n');
         }
 
-        // 示例：打印调试信息
         logToScreen('WebXR session started');
 
+        // 渲染帧回调函数
+        const onXRFrame = (timestamp, frame) => {
+            // 获取XR会话的相机视图
+            const xrCamera = renderer.xr.getCamera(camera);
 
-        // 渲染循环
-        renderer.setAnimationLoop(() => {
-            if (renderer.xr.isPresenting) {
-                const xrCamera = renderer.xr.getCamera(camera);
+            // 获取相机的世界位置和方向
+            const cameraWorldPosition = new THREE.Vector3();
+            const cameraWorldQuaternion = new THREE.Quaternion();
+            xrCamera.getWorldPosition(cameraWorldPosition);
+            xrCamera.getWorldQuaternion(cameraWorldQuaternion);
 
-                // 获取相机的世界位置和方向
-                const cameraWorldPosition = new THREE.Vector3();
-                const cameraWorldQuaternion = new THREE.Quaternion();
-                xrCamera.getWorldPosition(cameraWorldPosition);
-                xrCamera.getWorldQuaternion(cameraWorldQuaternion);
+            // 计算图片的目标位置（相机前方固定距离）
+            const offset = new THREE.Vector3(0, 0, -distance);
+            offset.applyQuaternion(cameraWorldQuaternion);
 
-                // 计算图片的目标位置（相机前方固定距离）
-                const offset = new THREE.Vector3(0, 0, -distance);
-                offset.applyQuaternion(cameraWorldQuaternion);
+            // 更新左右眼图片的位置和方向
+            meshLeft.position.copy(cameraWorldPosition).add(offset);
+            meshLeft.quaternion.copy(cameraWorldQuaternion);
 
-                // 更新左右眼图片的位置和方向
-                meshLeft.position.copy(cameraWorldPosition).add(offset);
-                meshLeft.quaternion.copy(cameraWorldQuaternion);
+            meshRight.position.copy(cameraWorldPosition).add(offset);
+            meshRight.quaternion.copy(cameraWorldQuaternion);
 
-                meshRight.position.copy(cameraWorldPosition).add(offset);
-                meshRight.quaternion.copy(cameraWorldQuaternion);
-
-
-                const session = renderer.xr.getSession();
-                if (session.inputSources) {
+            const session = renderer.xr.getSession();
+            if(session){
+                if(session.inputSources){
                     for (const inputSource of session.inputSources) {
                         if (inputSource.hand) {
                             const hand = inputSource.hand;
                             const joints = inputSource.handedness === 'left' ? leftHandJoints : rightHandJoints;
 
-                            logToScreen(String(inputSource.hand.values()));
-                            if(inputSource.hand){
-                                okMesh.position.set(1, 0, -4);
-                            }else{
-                                okMesh.position.set(-1, 0, -4);
-                            }
+                            // 更新手部关节位置
+                            let i = 0;
+                            for (const joint of hand.values()) {
+                                 const jointMesh = joints[i];
 
-  
-                            if (inputSource.hand) {
-                                let handData = "Hand data is available:\n";
+                                 if (!xrRefSpace) {
+                                    session.requestReferenceSpace('local').then((refSpace) => {
+                                        xrRefSpace = refSpace;
+                                    });
+                                 }
 
-                                // 获取手部数据的迭代器
-                                let hand = inputSource.hand;
+                                 // 如果有xrRefSpace，获取手部关节的位置
+                                 if (xrRefSpace) {
+                                    const jointPose = frame.getJointPose(joint, xrRefSpace);
 
-                                handData += String(hand.size)
-
-                                // 遍历 hand.values() 返回的迭代器并拼接信息
-//                                 let i = 0;
-//                                 for (let joint of hand.values()) {
-
-//                                     //joint 是一个XRJointSpace， 继承自XRSpace
-//                                     handData += String(joint.jointName);
-//                                     handData += String(joint.transform);
-// ''
-//                                     i++;
-//                                 }
-
-                                for (const [joint, jointSpace] of inputSource.hand) {
-                                    handData += String(joint);
-                                    handData += String(jointSpace);
-                                }
-
-                                // 最后一次性打印所有手部数据
-                                logToScreen(handData);
-                            } else {
-                                logToScreen("No hand data available.");
+                                    if (jointPose) {
+                                        jointMesh.position.set(
+                                            jointPose.transform.position.x,
+                                            jointPose.transform.position.y,
+                                            jointPose.transform.position.z -3
+                                        );
+                                        jointMesh.quaternion.set(
+                                            jointPose.transform.orientation.x,
+                                            jointPose.transform.orientation.y,
+                                            jointPose.transform.orientation.z,
+                                            jointPose.transform.orientation.w
+                                        );
+                                    }
+                                 }
+                                i++;
                             }
                         }
                     }
+
                 }
 
             }
 
             // 渲染场景
             renderer.render(scene, camera);
-        });
+        };
+
+        // 设置渲染循环
+        renderer.setAnimationLoop(onXRFrame);
 
         // 处理窗口大小变化
         window.addEventListener('resize', () => {
