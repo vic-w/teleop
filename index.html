@@ -131,19 +131,35 @@
                                  if (xrRefSpace) {
                                     const jointPose = frame.getJointPose(joint, xrRefSpace);
 
-                                    if (jointPose) {
-                                        jointMesh.position.set(
-                                            jointPose.transform.position.x,
-                                            jointPose.transform.position.y,
-                                            jointPose.transform.position.z -3
-                                        );
-                                        jointMesh.quaternion.set(
-                                            jointPose.transform.orientation.x,
-                                            jointPose.transform.orientation.y,
-                                            jointPose.transform.orientation.z,
-                                            jointPose.transform.orientation.w
-                                        );
-                                    }
+                                    // logToScreen(String('x:'+ jointPose.transform.position.x));
+                                    // logToScreen(String('y:'+ jointPose.transform.position.y));
+                                    // logToScreen(String('z:'+ jointPose.transform.position.z));
+
+                                    // 将手部关节的位置从头盔坐标系转换为世界坐标系
+                                    const jointLocalPosition = new THREE.Vector3(
+                                        jointPose.transform.position.x,
+                                        jointPose.transform.position.y,
+                                        jointPose.transform.position.z
+                                    );
+
+                                    // 将关节的旋转从头盔坐标系转换到世界坐标系
+                                    const jointLocalRotation = new THREE.Quaternion(
+                                        jointPose.transform.orientation.x,
+                                        jointPose.transform.orientation.y,
+                                        jointPose.transform.orientation.z,
+                                        jointPose.transform.orientation.w
+                                    );
+
+                                    // 先应用旋转，再应用平移
+                                    jointLocalPosition.applyQuaternion(cameraWorldQuaternion); // 将关节的局部位置旋转到世界坐标系
+                                    jointLocalPosition.add(cameraWorldPosition); // 应用相机的世界位置（平移）
+
+                                    // 最后更新关节的旋转：先应用相机的旋转，再应用关节的旋转
+                                    jointLocalRotation.multiply(cameraWorldQuaternion);
+
+                                    // 更新手部关节的位置和旋转
+                                    jointMesh.position.set(jointLocalPosition.x, jointLocalPosition.y, jointLocalPosition.z);
+                                    jointMesh.quaternion.set(jointLocalRotation.x, jointLocalRotation.y, jointLocalRotation.z, jointLocalRotation.w);
                                  }
                                 i++;
                             }
