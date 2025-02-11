@@ -16,7 +16,8 @@
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
         import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/VRButton.js';
 
-        let xrRefSpace = null;
+        let xrRefSpace_local = null;
+        let xrRefSpace_viewer = null;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -121,33 +122,40 @@
                             for (const joint of hand.values()) {
                                  const jointMesh = joints[i];
 
-                                 if (!xrRefSpace) {
+                                 if (!xrRefSpace_local) {
                                     session.requestReferenceSpace('local').then((refSpace) => {
-                                        xrRefSpace = refSpace;
+                                        xrRefSpace_local = refSpace;
+                                    });
+                                 }
+                                 if (!xrRefSpace_viewer) {
+                                    session.requestReferenceSpace('local').then((refSpace) => {
+                                        xrRefSpace_viewer = refSpace;
                                     });
                                  }
 
                                  // 如果有xrRefSpace，获取手部关节的位置
-                                 if (xrRefSpace) {
-                                    const jointPose = frame.getJointPose(joint, xrRefSpace);
+                                 if (xrRefSpace_local && xrRefSpace_viewer) {
+                                    const jointPose_local = frame.getJointPose(joint, xrRefSpace_local);
+                                    const jointPose_viewer = frame.getJointPose(joint, xrRefSpace_viewer);
+                                    const viewerPose = frame.getViewerPose(xrRefSpace_viewer);  
 
-                                    // logToScreen(String('x:'+ jointPose.transform.position.x));
-                                    // logToScreen(String('y:'+ jointPose.transform.position.y));
-                                    // logToScreen(String('z:'+ jointPose.transform.position.z));
+                                    //logToScreen(String('viewerPose y:'+ viewerPose.transform.position.y)); //这个是头盔相对于启动时的高度变化
+                                    //logToScreen(String('cam y:'+ cameraWorldPosition.y));                  //这个是头盔相对于地面的绝对高度
+                                    //logToScreen(String('hand y:'+ jointPose_local.transform.position.y));  //这个是手的高度
 
                                     // 将手部关节的位置从头盔坐标系转换为世界坐标系
                                     const jointLocalPosition = new THREE.Vector3(
-                                        jointPose.transform.position.x,
-                                        jointPose.transform.position.y + cameraWorldPosition.y,
-                                        jointPose.transform.position.z
+                                        jointPose_local.transform.position.x,
+                                        jointPose_local.transform.position.y + cameraWorldPosition.y - viewerPose.transform.position.y,
+                                        jointPose_local.transform.position.z
                                     );
 
                                     // 将关节的旋转从头盔坐标系转换到世界坐标系
                                     const jointLocalRotation = new THREE.Quaternion(
-                                        jointPose.transform.orientation.x,
-                                        jointPose.transform.orientation.y,
-                                        jointPose.transform.orientation.z,
-                                        jointPose.transform.orientation.w
+                                        jointPose_local.transform.orientation.x,
+                                        jointPose_local.transform.orientation.y,
+                                        jointPose_local.transform.orientation.z,
+                                        jointPose_local.transform.orientation.w
                                     );
 
                                     // 更新手部关节的位置和旋转
