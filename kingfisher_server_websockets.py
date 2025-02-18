@@ -20,7 +20,7 @@ video_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video")
 KINGFISHER_VIDEO_URL = "0.0.0.0"
 KINGFISHER_VIDEO_PORT = 8012
 KINGFISHER_VIDEO_NAME = "kingfisher"
-c=kingfisher.connect("192.168.9.125")
+c=kingfisher.connect("192.168.158.188")
 width,height=kingfisher.get_resolution()
 RESOLUTION = (int(height / 4), int(width / 4))
 kingfisher.SetAUTO_EXPOSURE()
@@ -28,9 +28,9 @@ print("Resolution: ", RESOLUTION)
 calib_file=kingfisher.getCalibData()
 print("Calibration file: ", calib_file)
 
-with open("./calib_6.yaml", "r", encoding="utf-8") as f:
-    data = yaml.load(stream=f, Loader=yaml.FullLoader)
-# data = yaml.safe_load(calib_file)
+# with open("./calib_6.yaml", "r", encoding="utf-8") as f:
+    # data = yaml.load(stream=f, Loader=yaml.FullLoader)
+data = yaml.safe_load(calib_file)
 # 将yaml中的数据转为numpy数组
 R_l_r = np.array(data['R_l_r'])
 cam1_k = np.array(data['cam1_k'])
@@ -56,6 +56,7 @@ print("Calibration data loaded.")
 # 使用 cv2.stereoRectify 找到极线矫正的变换矩阵
 rectify_scale = 0  # 缩放比例：0 - 不缩放，1 - 缩放
 R1, R2, P1, P2, Q, valid1, valid2 = cv2.stereoRectify(cam1_k, None, cam2_k, None, (RESOLUTION[1], RESOLUTION[0]), R_l_r, t_l_r, flags=0, alpha=rectify_scale)
+print("P2", P2)
 
 map1x, map1y = cv2.initUndistortRectifyMap(cam1_k, None, R1, P1, (RESOLUTION[1], RESOLUTION[0]), cv2.CV_32FC1)
 map2x, map2y = cv2.initUndistortRectifyMap(cam2_k, None, R2, P2, (RESOLUTION[1], RESOLUTION[0]), cv2.CV_32FC1)
@@ -199,7 +200,7 @@ async def video_stream(websocket: WebSocket):
         await websocket.send_bytes(header + left_image_data + right_image_data)
         print("Frame sent")
         # 稍作等待，避免占用过多 CPU 资源
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.01)
 
 
 if __name__ == "__main__":
