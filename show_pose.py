@@ -229,17 +229,17 @@ def show_pose(json_dict):
     
 def get_ryhand_qpos(hand_pose):
 
-    def get_angle(index1, index2):
-        wrist_qx = json_dict["left"][str(index1)]["quaternion"]["x"]
-        wrist_qy = json_dict["left"][str(index1)]["quaternion"]["y"]
-        wrist_qz = json_dict["left"][str(index1)]["quaternion"]["z"]
-        wrist_qw = json_dict["left"][str(index1)]["quaternion"]["w"]
+    def get_angle(which_hand, index1, index2):
+        wrist_qx = json_dict[which_hand][str(index1)]["quaternion"]["x"]
+        wrist_qy = json_dict[which_hand][str(index1)]["quaternion"]["y"]
+        wrist_qz = json_dict[which_hand][str(index1)]["quaternion"]["z"]
+        wrist_qw = json_dict[which_hand][str(index1)]["quaternion"]["w"]
         q0 = (wrist_qx, wrist_qy, wrist_qz, wrist_qw)
 
-        wrist_qx = json_dict["left"][str(index2)]["quaternion"]["x"]
-        wrist_qy = json_dict["left"][str(index2)]["quaternion"]["y"]
-        wrist_qz = json_dict["left"][str(index2)]["quaternion"]["z"]
-        wrist_qw = json_dict["left"][str(index2)]["quaternion"]["w"]
+        wrist_qx = json_dict[which_hand][str(index2)]["quaternion"]["x"]
+        wrist_qy = json_dict[which_hand][str(index2)]["quaternion"]["y"]
+        wrist_qz = json_dict[which_hand][str(index2)]["quaternion"]["z"]
+        wrist_qw = json_dict[which_hand][str(index2)]["quaternion"]["w"]
         q1 = (wrist_qx, wrist_qy, wrist_qz, wrist_qw)
 
         axis, angle = get_relative_rotation(q0, q1)
@@ -251,14 +251,19 @@ def get_ryhand_qpos(hand_pose):
         angle = float(angle*2000)
         return angle
     
-    angle3 = get_angle(5,9)
-    angle4 = get_angle(10,14)
-    angle5 = get_angle(15,19)
-    angle6 = get_angle(20,24)
+    angle3 = get_angle('left', 5,9)
+    angle4 = get_angle('left', 10,14)
+    angle5 = get_angle('left', 15,19)
+    angle6 = get_angle('left', 20,24)
 
     hands.set_left_hand([0.0, 0.0, angle3, angle4, angle5, angle6])
 
+    angle3 = get_angle('right', 5,9)
+    angle4 = get_angle('right', 10,14)
+    angle5 = get_angle('right', 15,19)
+    angle6 = get_angle('right', 20,24)
 
+    hands.set_right_hand([0.0, 0.0, angle3, angle4, angle5, angle6])
 
 # 读取pose.log文件
 with open("pose.log", "r") as f:
