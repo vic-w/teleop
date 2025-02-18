@@ -2,12 +2,15 @@ import asyncio
 import websockets
 import ssl
 
+logfp = open('pose.log', 'w')
+
 # 处理客户端连接的异步函数
 async def handle_connection(websocket, path=None):
     print(f"New connection from {path}")
     try:
         async for message in websocket:
             print(f"Received: {message}")
+            logfp.write(f"{message}\n")
             # 在这里添加你处理消息的逻辑
             await websocket.send("Response")
     except websockets.exceptions.ConnectionClosed as e:

@@ -94,8 +94,8 @@
 
         logToScreen('WebXR session started');
 
-        function sendFrameNumber() {
-            const jsonData = JSON.stringify({ frame: frameNumber });
+        function sendjson(json_dict){
+            const jsonData = JSON.stringify(json_dict);
             socketPoseServer.send(jsonData);
             frameNumber++;
         }
@@ -126,13 +126,33 @@
             if(session){
                 if(session.inputSources){
                     for (const inputSource of session.inputSources) {
+
+                        // 声明一个json字典，用于存储头部和手部的位置信息
+                        const json_dict = {};
+                        // 储存头部位置信息
+                        json_dict['head'] = {
+                            'position': {
+                                'x': cameraWorldPosition.x,
+                                'y': cameraWorldPosition.y,
+                                'z': cameraWorldPosition.z
+                            },
+                            'quaternion': {
+                                'x': cameraWorldQuaternion.x,
+                                'y': cameraWorldQuaternion.y,
+                                'z': cameraWorldQuaternion.z,
+                                'w': cameraWorldQuaternion.w
+                            }
+                        };
+
                         if (inputSource.hand) {
                             const hand = inputSource.hand;
                             const joints = inputSource.handedness === 'left' ? leftHandJoints : rightHandJoints;
 
+                            json_dict[inputSource.handedness] = {};
+
                             // 更新手部关节位置
                             let i = 0;
-                            sendFrameNumber()
+
                             for (const joint of hand.values()) {
                                  const jointMesh = joints[i];
 
@@ -172,12 +192,29 @@
                                         jointPose_local.transform.orientation.w
                                     );
 
+                                    json_dict[inputSource.handedness][i] = {
+                                        'position': {
+                                            'x': jointLocalPosition.x,
+                                            'y': jointLocalPosition.y,
+                                            'z': jointLocalPosition.z
+                                        },
+                                        'quaternion': {
+                                            'x': jointLocalRotation.x,
+                                            'y': jointLocalRotation.y,
+                                            'z': jointLocalRotation.z,
+                                            'w': jointLocalRotation.w
+                                        }
+                                    };
+
                                     // 更新手部关节的位置和旋转
                                     jointMesh.position.set(jointLocalPosition.x, jointLocalPosition.y, jointLocalPosition.z);
                                     jointMesh.quaternion.set(jointLocalRotation.x, jointLocalRotation.y, jointLocalRotation.z, jointLocalRotation.w);
                                  }
                                 i++;
+
                             }
+
+                            sendjson(json_dict)
                         }
                     }
 
