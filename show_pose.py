@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 import json
 from finger_rotation import get_relative_rotation
-from publish_topic import hand_controller
+
+ROS = True#False 
+if ROS:
+    from publish_topic import hand_controller
 
 
 # 连接手指关节编号，生成连接线
@@ -14,7 +17,8 @@ lines = [
     [0, 20, 21, 22, 23, 24]
 ]
 
-hands = hand_controller()
+if ROS:
+    hands = hand_controller()
 
 def get_unit_vector(x, y, z, qx, qy, qz, qw):
     R = np.array([[1 - 2 * qy * qy - 2 * qz * qz, 2 * qx * qy - 2 * qz * qw, 2 * qx * qz + 2 * qy * qw],
@@ -223,14 +227,37 @@ def show_pose(json_dict):
     # 显示拼接图
     combined_view[:, :400] = front_view
     combined_view[:, 400:] = top_view
-    #cv2.imshow("Pose", combined_view)
-    #cv2.waitKey(1)
+    cv2.imshow("Pose", combined_view)
+    cv2.waitKey(1)
 
 
     
 def get_ryhand_qpos(hand_pose, which_hand):
 
     def get_angle(index1, index2):
+        wrist_qx = hand_pose[str(index1)]["quaternion"]["x"]
+        wrist_qy = hand_pose[str(index1)]["quaternion"]["y"]
+        wrist_qz = hand_pose[str(index1)]["quaternion"]["z"]
+        wrist_qw = hand_pose[str(index1)]["quaternion"]["w"]
+        q0 = (wrist_qx, wrist_qy, wrist_qz, wrist_qw)
+
+        wrist_qx = hand_pose[str(index2)]["quaternion"]["x"]
+        wrist_qy = hand_pose[str(index2)]["quaternion"]["y"]
+        wrist_qz = hand_pose[str(index2)]["quaternion"]["z"]
+        wrist_qw = hand_pose[str(index2)]["quaternion"]["w"]
+        q1 = (wrist_qx, wrist_qy, wrist_qz, wrist_qw)
+
+        axis, angle = get_relative_rotation(q0, q1)
+
+        #print(angle)
+        if angle<0: angle=0
+        if angle>2: angle=2
+
+        angle = float(angle*2000)
+        return angle
+    
+    def get_thumb_angle():
+        index1, index2 = 4, 6
         wrist_qx = hand_pose[str(index1)]["quaternion"]["x"]
         wrist_qy = hand_pose[str(index1)]["quaternion"]["y"]
         wrist_qz = hand_pose[str(index1)]["quaternion"]["z"]
@@ -252,15 +279,17 @@ def get_ryhand_qpos(hand_pose, which_hand):
         angle = float(angle*2000)
         return angle
     
+    angle2 = get_thumb_angle()
     angle3 = get_angle(5,9)
     angle4 = get_angle(10,14)
     angle5 = get_angle(15,19)
     angle6 = get_angle(20,24)
 
-    if which_hand == 'left':
-        hands.set_left_hand([0.0, 0.0, angle3, angle4, angle5, angle6])
-    else:
-        hands.set_right_hand([0.0, 0.0, angle3, angle4, angle5, angle6])
+    if ROS:
+        if which_hand == 'left':
+            hands.set_left_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
+        else:
+            hands.set_right_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
 
 # 读取pose.log文件
 with open("pose.log", "r") as f:
