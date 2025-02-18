@@ -1,8 +1,10 @@
 import asyncio
 import websockets
 import ssl
+import json
+from show_pose import get_ryhand_qpos
 
-logfp = open('pose.log', 'w')
+#logfp = open('pose.log', 'w')
 
 # 处理客户端连接的异步函数
 async def handle_connection(websocket, path=None):
@@ -10,7 +12,13 @@ async def handle_connection(websocket, path=None):
     try:
         async for message in websocket:
             print(f"Received: {message}")
-            logfp.write(f"{message}\n")
+            json_dict = json.loads(message)
+            if "left" in json_dict and json_dict["left"]:
+                get_ryhand_qpos(json_dict['left'], 'left')
+            if "right" in json_dict and json_dict["right"]:
+                get_ryhand_qpos(json_dict['right'], 'right')
+
+            #logfp.write(f"{message}\n")
             # 在这里添加你处理消息的逻辑
             await websocket.send("Response")
     except websockets.exceptions.ConnectionClosed as e:
