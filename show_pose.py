@@ -2,10 +2,7 @@ import cv2
 import numpy as np
 import json
 from finger_rotation import get_relative_rotation
-
-ROS = True#False 
-if ROS:
-    from publish_topic import hand_controller
+from publish_topic import hand_controller
 
 
 # 连接手指关节编号，生成连接线
@@ -17,8 +14,7 @@ lines = [
     [0, 20, 21, 22, 23, 24]
 ]
 
-if ROS:
-    hands = hand_controller()
+hands = hand_controller()
 
 def get_unit_vector(x, y, z, qx, qy, qz, qw):
     R = np.array([[1 - 2 * qy * qy - 2 * qz * qz, 2 * qx * qy - 2 * qz * qw, 2 * qx * qz + 2 * qy * qw],
@@ -227,8 +223,8 @@ def show_pose(json_dict):
     # 显示拼接图
     combined_view[:, :400] = front_view
     combined_view[:, 400:] = top_view
-    cv2.imshow("Pose", combined_view)
-    cv2.waitKey(1)
+    #cv2.imshow("Pose", combined_view)
+    #cv2.waitKey(1)
 
 
     
@@ -285,18 +281,18 @@ def get_ryhand_qpos(hand_pose, which_hand):
     angle5 = get_angle(15,19)
     angle6 = get_angle(20,24)
 
-    if ROS:
-        if which_hand == 'left':
-            hands.set_left_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
-        else:
-            hands.set_right_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
+    if which_hand == 'left':
+        hands.set_left_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
+    else:
+        hands.set_right_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
 
-# 读取pose.log文件
-with open("pose.log", "r") as f:
-    for line in f:
-        # print(line)
-        json_dict = json.loads(line)
-        show_pose(json_dict)
+if __name__ == '__main__':
+    # 读取pose.log文件
+    with open("pose.log", "r") as f:
+        for line in f:
+            # print(line)
+            json_dict = json.loads(line)
+            show_pose(json_dict)
 
 
 # json_dict = json.loads(json_data)
