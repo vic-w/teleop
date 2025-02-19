@@ -46,7 +46,7 @@
         let textureRight = new THREE.Texture();
 
         // 创建左右眼平面
-        const geometry = new THREE.PlaneGeometry(5, 5); // 平面大小
+        const geometry = new THREE.PlaneGeometry(38, 21); // 平面大小
         const materialLeft = new THREE.MeshBasicMaterial({ map: textureLeft });
         const materialRight = new THREE.MeshBasicMaterial({ map: textureRight });
 
@@ -62,7 +62,7 @@
         meshRight.layers.set(2); // 右眼层级
 
         // 设置初始位置（距离相机一定距离）
-        const distance = 5; // 图片距离相机的距离
+        const distance = 18; // 图片距离相机的距离
         meshLeft.position.set(-0.5, 0, -distance); // 左眼图片位置
         meshRight.position.set(0.5, 0, -distance); // 右眼图片位置
 
