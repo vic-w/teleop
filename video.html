@@ -18,7 +18,8 @@
         // 获取当前网页的主机名（即 IP 地址或域名）
         const serverAddress = window.location.hostname;
         // 构建 WebSocket 连接地址
-        const socket = new WebSocket(`wss://${serverAddress}:8765`); // 使用动态获取的主机名作为 WebSocket 地址
+        // const socket = new WebSocket(`wss://${serverAddress}:8765`); // 使用动态获取的主机名作为 WebSocket 地址
+        const socket = new WebSocket(`wss://${serverAddress}:8012/ws/video`); // 使用动态获取的主机名作为 WebSocket 地址
 
         // 获取 <img> 元素
         const leftVideoElement = document.getElementById('left');
