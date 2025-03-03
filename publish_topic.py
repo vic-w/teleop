@@ -8,6 +8,7 @@ class MotorControlPublisher(Node):
         # 创建发布者，发布到 /left_hand_qpos 话题
         self.left_publisher = self.create_publisher(Float64MultiArray, '/set_left_hand_qpos', 10)
         self.right_publisher = self.create_publisher(Float64MultiArray, '/set_right_hand_qpos', 10)
+        self.oculus_pose_publisher = self.create_publisher(Float64MultiArray, '/oculus_pose', 10)
 
     def publish_left_hand_angles(self, angles):
         # 创建 Float64MultiArray 消息并将角度值填充到消息数据中
@@ -27,6 +28,11 @@ class MotorControlPublisher(Node):
         self.right_publisher.publish(msg)
         #self.get_logger().info(f'Publishing angles: {angles}')
 
+    def publish_oculus_pose(self, oculus_pose):
+        msg = Float64MultiArray()
+        msg.data = oculus_pose
+        self.oculus_pose_publisher.publish(msg)
+
 class hand_controller:
     def __init__(self):
         rclpy.init()  # 初始化 ROS 2
@@ -39,6 +45,9 @@ class hand_controller:
     def set_right_hand(self, angles):
         # 在需要时调用函数发布消息
         self.motor_control_publisher.publish_right_hand_angles(angles)
+
+    def set_oculus_pose(self, pose):
+        self.motor_control_publisher.publish_oculus_pose(pose)
 
     def __del__(self):
         # 关闭 ROS 2 节点

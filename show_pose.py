@@ -226,7 +226,19 @@ def show_pose(json_dict):
     #cv2.imshow("Pose", combined_view)
     #cv2.waitKey(1)
 
+def send_oculus_pose(head_matrix, left_hand_matrices, right_hand_matrices):
+    pose_array = []
+    for y in range(4):
+        for x in range(4):
+            pose_array.append(head_matrix[y][x])
+    for y in range(4):
+        for x in range(4):
+            pose_array.append(left_hand_matrices[y][x])
+    for y in range(4):
+        for x in range(4):
+            pose_array.append(right_hand_matrices[y][x])
 
+    hands.set_oculus_pose(pose_array)
     
 def get_ryhand_qpos(hand_pose, which_hand):
 
@@ -268,7 +280,7 @@ def get_ryhand_qpos(hand_pose, which_hand):
 
         axis, angle = get_relative_rotation(q0, q1)
 
-        print(angle)
+        #print(angle)
         if angle<0: angle=0
         if angle>2: angle=2
 
@@ -282,9 +294,11 @@ def get_ryhand_qpos(hand_pose, which_hand):
     angle6 = get_angle(20,24)
 
     if which_hand == 'left':
-        hands.set_left_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
+        print('left', angle3)
+        hands.set_left_hand([2000.0, 2000.0, angle3, angle4, angle5, angle6])
     else:
-        hands.set_right_hand([1000.0, angle2, angle3, angle4, angle5, angle6])
+        print('right', angle3)
+        hands.set_right_hand([2000.0, 1700.0, angle3, angle4, angle5, angle6])
 
 if __name__ == '__main__':
     # 读取pose.log文件

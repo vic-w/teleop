@@ -57,14 +57,22 @@
         scene.add(meshLeft);
         scene.add(meshRight);
 
-        // 设置渲染层级
-        meshLeft.layers.set(1);  // 左眼层级
-        meshRight.layers.set(2); // 右眼层级
 
         // 设置初始位置（距离相机一定距离）
         const distance = 18; // 图片距离相机的距离
         meshLeft.position.set(-0.5, 0, -distance); // 左眼图片位置
         meshRight.position.set(0.5, 0, -distance); // 右眼图片位置
+
+        // 进入vr模式之前，预览图片
+	const pre_geometry = new THREE.PlaneGeometry(19, 10);
+        const pre_meshLeft = new THREE.Mesh(pre_geometry, materialLeft);
+        const pre_meshRight = new THREE.Mesh(pre_geometry, materialRight);
+	scene.add(pre_meshLeft);
+	scene.add(pre_meshRight);
+	pre_meshLeft.position.set(-19, 0, -20);
+	pre_meshRight.position.set(19, 0, -20);
+
+
 
         // 创建手部关节的几何体和材质
         const jointGeometry = new THREE.SphereGeometry(0.005, 16, 16); // 小球表示关节
@@ -104,6 +112,11 @@
 
         // 渲染帧回调函数
         const onXRFrame = (timestamp, frame) => {
+
+            // 设置渲染层级
+            meshLeft.layers.set(1);  // 左眼层级
+            meshRight.layers.set(2); // 右眼层级
+
             // 获取XR会话的相机视图
             const xrCamera = renderer.xr.getCamera(camera);
 

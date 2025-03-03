@@ -8,6 +8,7 @@ import kingfisher
 import asyncio
 import struct
 import yaml
+import time
 
 # from embodychain.devices.camera.king_fisher import kingfisher, RESOLUTION
 # from embodychain.services import (
@@ -125,14 +126,14 @@ def generate_frames(
             dual_image = np.hstack([color_image, color_image_right])
 
         if write_video and count <= VIDEO_LEN:
-            print("Video count: {}".format(count))
+            #print("Video count: {}".format(count))
             videowriter.write(color_image)
             videowriter_right.write(color_image_right)
             count += 1
         if count > VIDEO_LEN and write_video and not release:
             videowriter.release()
             videowriter_right.release()
-            print("Video capture done: {}".format(current_time))
+            #print("Video capture done: {}".format(current_time))
             release = True
 
         if not ret:
@@ -169,10 +170,14 @@ async def video_stream(websocket: WebSocket):
     print("WebSocket connection")
     await websocket.accept()
     print("WebSocket connection accepted")
+    n_frame = 0
     while True:
-        print("Sending frame")
+        n_frame += 1
+
+        #print("Sending frame", n_frame)
         # 读取视频帧
         left, right = kingfisher.captureQuarterSize()
+
         # rectify
         left = cv2.remap(left, map1x, map1y, cv2.INTER_LINEAR)
         right = cv2.remap(right, map2x, map2y, cv2.INTER_LINEAR)
@@ -183,6 +188,9 @@ async def video_stream(websocket: WebSocket):
         # 编码成 JPEG 图片
         color_image = np.reshape(left, RESOLUTION + (3,))
         color_image_right = np.reshape(right, RESOLUTION + (3,))
+        shape = [240, 135]
+        color_image = cv2.resize(color_image, shape)
+        color_image_right = cv2.resize(color_image_right, shape)
         _, buffer = cv2.imencode('.jpg', color_image)
         left_image_data = buffer.tobytes()
         _, buffer = cv2.imencode('.jpg', color_image_right)
@@ -196,11 +204,11 @@ async def video_stream(websocket: WebSocket):
         header = struct.pack('!II', left_length, right_length)
 
         # 发送给客户端
-        print("Sending frame to client")
+        #print("Sending frame to client")
         await websocket.send_bytes(header + left_image_data + right_image_data)
-        print("Frame sent")
+        #print("Frame sent")
         # 稍作等待，避免占用过多 CPU 资源
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.001)
 
 
 if __name__ == "__main__":
